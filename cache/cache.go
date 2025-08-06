@@ -1,10 +1,10 @@
 // 并发控制
-package Cache
+package cache
 
 import (
 	"sync"
 
-	"github.com/LudensCS/Cache/lru"
+	"github.com/LudensCS/Cache/cache/lru"
 )
 
 // 多线程安全缓存

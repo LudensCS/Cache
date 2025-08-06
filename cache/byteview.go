@@ -1,4 +1,4 @@
-package Cache
+package cache
 
 // 只读数据结构,表示缓存值
 type ByteView struct {
