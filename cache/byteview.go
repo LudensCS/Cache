@@ -1,5 +1,7 @@
 package cache
 
+import "slices"
+
 // 只读数据结构,表示缓存值
 type ByteView struct {
 	//存储真实缓存值
@@ -19,7 +21,5 @@ func (View ByteView) String() string {
 	return string(View.b)
 }
 func CloneBytes(b []byte) []byte {
-	cb := make([]byte, len(b))
-	copy(cb, b)
-	return cb
+	return slices.Clone(b)
 }
