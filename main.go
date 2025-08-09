@@ -15,6 +15,7 @@ var db = map[string]string{
 	"lucy": "125",
 }
 
+// 创立缓存组
 func CreateGroup() *cache.Group {
 	return cache.NewGroup("scores", 2<<10, cache.GetterFunc(
 		func(key string) ([]byte, error) {
@@ -26,6 +27,8 @@ func CreateGroup() *cache.Group {
 		},
 	))
 }
+
+// 启动缓存服务
 func StartCacheServer(addr string, addrs []string, g *cache.Group) {
 	peers := cache.NewHTTPPool(addr)
 	peers.Set(addrs...)
@@ -33,6 +36,8 @@ func StartCacheServer(addr string, addrs []string, g *cache.Group) {
 	log.Println("Cache is Running at", addr)
 	log.Fatal(http.ListenAndServe(addr[7:], peers))
 }
+
+// 在本机apiAddr上启动api网关服务
 func StartAPIServer(apiAddr string, g *cache.Group) {
 	http.Handle("/api", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +67,7 @@ func init() {
 func main() {
 	flag.Parse()
 	apiAddr := "http://localhost:9999"
+	//
 	addrMap := map[int]string{
 		8001: "http://localhost:8001",
 		8002: "http://localhost:8002",
@@ -71,6 +77,8 @@ func main() {
 	for _, addr := range addrMap {
 		addrs = append(addrs, addr)
 	}
+	//创建一个缓存组,名字叫"scores",[]addrMap内的三个服务器都属于该同名缓存组集群内
+	//它们逻辑上属于同一个分布式系统
 	Cache := CreateGroup()
 	if api {
 		go StartAPIServer(apiAddr, Cache)

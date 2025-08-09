@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"sync"
+
+	"github.com/LudensCS/Cache/cache/singleflight"
 )
 
 type GetterFunc func(key string) ([]byte, error)
@@ -16,11 +18,14 @@ func (f GetterFunc) Get(key string) ([]byte, error) {
 	return f(key)
 }
 
+// 缓存组,一个缓存组可以有多个分布式节点
+// 同名缓存组共享逻辑地址,如果两个节点在同名缓存组内,它们属于同一个子系统
 type Group struct {
 	name      string
 	getter    Getter //回调函数
 	mainCache cache
 	peers     PeerPicker
+	loader    *singleflight.Group //利用singleflight保证同一时间每种请求只会访问数据库一次
 }
 
 var (
@@ -37,6 +42,7 @@ func NewGroup(name string, CacheBytes int64, getter Getter) *Group {
 		name:      name,
 		getter:    getter,
 		mainCache: cache{CacheBytes: CacheBytes},
+		loader:    &singleflight.Group{},
 	}
 	mu.Lock()
 	defer mu.Unlock()
@@ -74,17 +80,23 @@ func (g *Group) Get(key string) (ByteView, error) {
 	return g.Load(key)
 }
 
-// 尝试从远端节点获取缓存,失败则调用GetLocally方法
-func (g *Group) Load(key string) (value ByteView, err error) {
-	if g.peers != nil {
-		if peer, ok := g.peers.PickPeer(key); ok {
-			if value, err = g.GetFromPeer(peer, key); err == nil {
-				return value, nil
+// 尝试从远端节点获取缓存,失败则调用GetLocally方法,利用singleflight防止缓存击穿
+func (g *Group) Load(key string) (ByteView, error) {
+	value, err := g.loader.Do(key, func() (value any, err error) {
+		if g.peers != nil {
+			if peer, ok := g.peers.PickPeer(key); ok {
+				if value, err = g.GetFromPeer(peer, key); err == nil {
+					return value, nil
+				}
+				log.Println("[Cache] failed to get from peer :", err)
 			}
-			log.Println("[Cache] failed to get from peer :", err)
 		}
+		return g.GetLocally(key)
+	})
+	if err != nil {
+		return ByteView{}, err
 	}
-	return g.GetLocally(key)
+	return value.(ByteView), nil
 }
 
 // 从远端节点获取缓存
