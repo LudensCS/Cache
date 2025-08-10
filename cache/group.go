@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/LudensCS/Cache/cache/cachepb"
 	"github.com/LudensCS/Cache/cache/singleflight"
 )
 
@@ -101,11 +102,13 @@ func (g *Group) Load(key string) (ByteView, error) {
 
 // 从远端节点获取缓存
 func (g *Group) GetFromPeer(peer PeerGetter, key string) (ByteView, error) {
-	value, err := peer.Get(g.name, key)
+	Req := &cachepb.Request{Group: g.name, Key: key}
+	Resp := &cachepb.Response{}
+	err := peer.Get(Req, Resp)
 	if err != nil {
 		return ByteView{}, err
 	}
-	return ByteView{b: CloneBytes(value)}, nil
+	return ByteView{b: CloneBytes(Resp.GetValue())}, nil
 }
 
 // 使用回调函数从本地数据源获取key对应的value值并加载到缓存

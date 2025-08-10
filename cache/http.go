@@ -9,7 +9,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/LudensCS/Cache/cache/cachepb"
 	"github.com/LudensCS/Cache/cache/consistenthash"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -89,22 +91,29 @@ func (pool *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	bytes, err := proto.Marshal(&cachepb.Response{Value: value.ByteSlice()})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(value.ByteSlice())
+	w.Write(bytes)
 }
-func (h *HTTPGetter) Get(group string, key string) ([]byte, error) {
-	u := fmt.Sprintf("%v%v/%v", h.BaseURL, url.QueryEscape(group), url.QueryEscape(key))
+func (h *HTTPGetter) Get(Req *cachepb.Request, Resp *cachepb.Response) error {
+	u := fmt.Sprintf("%v%v/%v", h.BaseURL, url.QueryEscape(Req.GetGroup()), url.QueryEscape(Req.GetKey()))
 	resp, err := http.Get(u)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server returned: %v", resp.StatusCode)
+		return fmt.Errorf("server returned: %v", resp.StatusCode)
 	}
 	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("reading response body error:%v", err)
+		return fmt.Errorf("reading response body error:%v", err)
 	}
-	return bytes, nil
+	if err := proto.Unmarshal(bytes, Resp); err != nil {
+		return fmt.Errorf("decoding proto bytes error:%v", err)
+	}
+	return nil
 }
