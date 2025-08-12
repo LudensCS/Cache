@@ -1,12 +1,13 @@
 package cache
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
 	"github.com/LudensCS/Cache/cache/cachepb"
 	"github.com/LudensCS/Cache/cache/singleflight"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type GetterFunc func(key string) ([]byte, error)
@@ -72,7 +73,7 @@ func (g *Group) RegisterPeers(peers PeerPicker) {
 // 查询key对应的value
 func (g *Group) Get(key string) (ByteView, error) {
 	if key == "" {
-		return ByteView{}, fmt.Errorf("key is required")
+		return ByteView{}, status.Errorf(codes.Internal, "key is required")
 	}
 	if value, ok := g.mainCache.Get(key); ok {
 		log.Println("Cache hit")

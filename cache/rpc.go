@@ -10,7 +10,9 @@ import (
 	"github.com/LudensCS/Cache/cache/cachepb"
 	"github.com/LudensCS/Cache/cache/consistenthash"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 const defaultReplicas = 50
@@ -47,7 +49,7 @@ func (CS *CacheServer) Log(format string, args ...any) {
 func (CS *CacheServer) Get(ctx context.Context, Req *cachepb.Request) (*cachepb.Response, error) {
 	group := GetGroup(Req.GetGroup())
 	if group == nil {
-		return &cachepb.Response{}, fmt.Errorf("group not found")
+		return &cachepb.Response{}, status.Error(codes.Internal, "group not found")
 	}
 	value, err := group.Get(Req.GetKey())
 	if err != nil {
@@ -86,20 +88,20 @@ func (CS *CacheServer) Run() error {
 	S := grpc.NewServer()
 	cachepb.RegisterGroupCacheServer(S, CS)
 	listener, err := net.Listen("tcp", CS.Self[7:])
-	defer listener.Close()
 	if err != nil {
 		return err
 	}
+	defer listener.Close()
 	return S.Serve(listener)
 }
 
 // 启动rpc客户端调用
 func (CC *CacheClient) Get(Req *cachepb.Request) (*cachepb.Response, error) {
 	conn, err := grpc.NewClient(CC.BaseURL[7:], grpc.WithTransportCredentials(insecure.NewCredentials()))
-	defer conn.Close()
 	if err != nil {
 		return &cachepb.Response{}, err
 	}
+	defer conn.Close()
 	client := cachepb.NewGroupCacheClient(conn)
 	Resp, err := client.Get(context.Background(), Req)
 	if err != nil {

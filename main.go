@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/LudensCS/Cache/cache"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var db = map[string]string{
@@ -23,7 +24,7 @@ func CreateGroup() *cache.Group {
 			if v, ok := db[key]; ok {
 				return []byte(v), nil
 			}
-			return nil, fmt.Errorf("%s not exist", key)
+			return nil, status.Errorf(codes.NotFound, "%s not exist", key)
 		},
 	))
 }
