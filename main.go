@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/LudensCS/Cache/cache"
+	"github.com/LudensCS/Cache/middlewares/bloomfilter"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -40,9 +41,16 @@ func StartCacheServer(addr string, addrs []string, g *cache.Group) {
 
 // 在本机apiAddr上启动api网关服务
 func StartAPIServer(apiAddr string, g *cache.Group) {
+	Filter := LoadDB()
+	//example : http://apiAddr/api?key=xxx
 	http.Handle("/api", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			key := r.URL.Query().Get("key")
+			if !Filter.Query(key) {
+				err := status.Errorf(codes.NotFound, "%v not exist", key)
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
 			view, err := g.Get(key)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -54,6 +62,15 @@ func StartAPIServer(apiAddr string, g *cache.Group) {
 	))
 	log.Println("fontend server is running at :", apiAddr)
 	log.Fatal(http.ListenAndServe(apiAddr[7:], nil))
+}
+
+// 将数据库中的数据加载到布隆过滤器
+func LoadDB() *bloomfilter.Bloomfilter {
+	Filter := bloomfilter.New(len(db))
+	for key := range db {
+		Filter.Add(key)
+	}
+	return Filter
 }
 
 var (
@@ -68,7 +85,7 @@ func init() {
 func main() {
 	flag.Parse()
 	apiAddr := "http://localhost:9999"
-	//
+	//分布式系统中各节点地址
 	addrMap := map[int]string{
 		8001: "http://localhost:8001",
 		8002: "http://localhost:8002",
