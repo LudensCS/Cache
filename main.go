@@ -30,11 +30,11 @@ func CreateGroup() *cache.Group {
 
 // 启动缓存服务
 func StartCacheServer(addr string, addrs []string, g *cache.Group) {
-	peers := cache.NewHTTPPool(addr)
+	peers := cache.NewCacheServer(addr)
 	peers.Set(addrs...)
 	g.RegisterPeers(peers)
 	log.Println("Cache is Running at", addr)
-	log.Fatal(http.ListenAndServe(addr[7:], peers))
+	log.Fatal(peers.Run())
 }
 
 // 在本机apiAddr上启动api网关服务

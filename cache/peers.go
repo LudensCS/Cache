@@ -7,5 +7,5 @@ type PeerPicker interface {
 }
 
 type PeerGetter interface {
-	Get(Req *cachepb.Request, Resp *cachepb.Response) error
+	Get(Req *cachepb.Request) (*cachepb.Response, error)
 }

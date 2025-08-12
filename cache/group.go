@@ -103,8 +103,7 @@ func (g *Group) Load(key string) (ByteView, error) {
 // 从远端节点获取缓存
 func (g *Group) GetFromPeer(peer PeerGetter, key string) (ByteView, error) {
 	Req := &cachepb.Request{Group: g.name, Key: key}
-	Resp := &cachepb.Response{}
-	err := peer.Get(Req, Resp)
+	Resp, err := peer.Get(Req)
 	if err != nil {
 		return ByteView{}, err
 	}
