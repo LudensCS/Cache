@@ -1,5 +1,9 @@
 github.com/LudensCS/Cache/cache v0.0.0-20250809140958-1008432daaae h1:BiLfO6n/KLuDOVYQtA15y5NoKB+X5MqPlHudC9wX5NM=
 github.com/LudensCS/Cache/cache v0.0.0-20250809140958-1008432daaae/go.mod h1:hmmntJISTQ5EzirvsjDdG/Por1N+0PaOPpTOyjd9MIw=
+github.com/LudensCS/Cache/middlewares v0.0.0-20250812145500-3a37b1f0897a h1:uPCkbN55wCTyTgKe3GlcUGgV4Lpmx0n6afPus13knd8=
+github.com/LudensCS/Cache/middlewares v0.0.0-20250812145500-3a37b1f0897a/go.mod h1:Vyfd4BEF37WMv0HR9BgvSz7OTN/kkrU1lDjrE0SGzBI=
+github.com/bits-and-blooms/bitset v1.24.0 h1:H4x4TuulnokZKvHLfzVRTHJfFfnHEeSYJizujEZvmAM=
+github.com/bits-and-blooms/bitset v1.24.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
