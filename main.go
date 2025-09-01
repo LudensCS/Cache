@@ -2,12 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/LudensCS/Cache/cache"
 	"github.com/LudensCS/Cache/database/mysql"
 	"github.com/LudensCS/Cache/middlewares/bloomfilter"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -87,7 +90,14 @@ func init() {
 	flag.IntVar(&port, "port", 8000, "the port of cache server")
 	flag.BoolVar(&api, "api", false, "start a api server?")
 	flag.BoolVar(&loaddata, "load", false, "initial database with pre-datas")
-	dsn = "ludens:123456@tcp(127.0.0.1:3306)/itcast?loc=Local&parseTime=true&charset=utf8mb4"
+	if err := godotenv.Load("./variables.env"); err != nil {
+		log.Fatal(err)
+	}
+	dsn = fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?loc=Local&parseTime=true&charset=utf8mb4",
+		os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"), os.Getenv("DB_NAME"),
+	)
 }
 func main() {
 	flag.Parse()
