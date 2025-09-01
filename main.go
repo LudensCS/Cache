@@ -6,31 +6,31 @@ import (
 	"net/http"
 
 	"github.com/LudensCS/Cache/cache"
+	"github.com/LudensCS/Cache/database/mysql"
 	"github.com/LudensCS/Cache/middlewares/bloomfilter"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 )
 
-var db = map[string]string{
-	"jack": "663",
-	"Tom":  "78515",
-	"lucy": "125",
-}
+var db *gorm.DB
+var dsn string
 
-// 创立缓存组
+// CreateGroup 创立缓存组
 func CreateGroup() *cache.Group {
 	return cache.NewGroup("scores", 2<<10, cache.GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
-			if v, ok := db[key]; ok {
-				return []byte(v), nil
+			row, err := mysql.Select(db, key)
+			if err != nil {
+				return nil, err
 			}
-			return nil, status.Errorf(codes.NotFound, "%s not exist", key)
+			return row[0].Value, nil
 		},
 	))
 }
 
-// 启动缓存服务
+// StartCacheServer 启动缓存服务
 func StartCacheServer(addr string, addrs []string, g *cache.Group) {
 	peers := cache.NewCacheServer(addr)
 	peers.Set(addrs...)
@@ -39,7 +39,7 @@ func StartCacheServer(addr string, addrs []string, g *cache.Group) {
 	log.Fatal(peers.Run())
 }
 
-// 在本机apiAddr上启动api网关服务
+// StartAPIServer 在本机apiAddr上启动api网关服务
 func StartAPIServer(apiAddr string, g *cache.Group) {
 	Filter := LoadDB()
 	//example : http://apiAddr/api?key=xxx
@@ -64,26 +64,52 @@ func StartAPIServer(apiAddr string, g *cache.Group) {
 	log.Fatal(http.ListenAndServe(apiAddr[7:], nil))
 }
 
-// 将数据库中的数据加载到布隆过滤器
+// LoadDB 将数据库中的数据加载到布隆过滤器
 func LoadDB() *bloomfilter.Bloomfilter {
-	Filter := bloomfilter.New(len(db))
-	for key := range db {
-		Filter.Add(key)
+	rows, err := mysql.Select(db, "*")
+	if err != nil {
+		log.Fatal(err)
+	}
+	Filter := bloomfilter.New(len(rows))
+	for _, row := range rows {
+		Filter.Add(row.Key)
 	}
 	return Filter
 }
 
 var (
-	port int
-	api  bool
+	port     int
+	api      bool
+	loaddata bool
 )
 
 func init() {
-	flag.IntVar(&port, "port", 8001, "the port of cache server")
+	flag.IntVar(&port, "port", 8000, "the port of cache server")
 	flag.BoolVar(&api, "api", false, "start a api server?")
+	flag.BoolVar(&loaddata, "load", false, "initial database with pre-datas")
+	dsn = "ludens:123456@tcp(127.0.0.1:3306)/itcast?loc=Local&parseTime=true&charset=utf8mb4"
 }
 func main() {
 	flag.Parse()
+	//数据库初始化
+	var err error
+	db, err = mysql.Register(dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if loaddata {
+		var datas = []*mysql.Data{
+			{Key: "Jack", Value: []byte("Admin")},
+			{Key: "Lucy", Value: []byte("User")},
+			{Key: "David", Value: []byte("User")},
+		}
+		err = mysql.Init(db, datas)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("local data has loaded")
+		return
+	}
 	apiAddr := "http://localhost:9999"
 	//分布式系统中各节点地址
 	addrMap := map[int]string{

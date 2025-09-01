@@ -50,8 +50,11 @@ func (BF *Bloomfilter) Add(key string) {
 	}
 }
 
-// 查询key值是否可能存在
+// Query 查询key值是否可能存在
 func (BF *Bloomfilter) Query(key string) bool {
+	if BF.mod == 0 {
+		return false
+	}
 	for _, seed := range BF.hashSeeds {
 		val := BF.GetHash(key, seed)
 		val %= uint64(BF.mod)
